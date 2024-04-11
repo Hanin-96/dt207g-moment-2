@@ -1,3 +1,5 @@
+//Api Skal
+
 const { Client } = require("pg");
 require("dotenv").config();
 
@@ -39,37 +41,91 @@ app.listen(process.env.PORT, () => {
 });
 
 //Routing API
+
+//Get
+
+//Test
 app.get("/api", (req, res) => {
-    res.json([{ message: "Welcome to my REST API"}, {name: "Mattias"}]);
+    res.json([{ message: "Welcome to my REST API" }, { name: "Hanin" }]);
 });
 
-app.get("/api/cv", (req,res) => {
-    res.json({message: "Get API för alla CV"});
+app.get("/api/cv", (req, res) => {
+
+    client.query("SELECT * FROM cv;", (error, result) => {
+        if (error) {
+            console.error(error.message);
+        } else {
+            res.json(result.rows);
+        }
+    });
 });
 
-app.post("/api/cv", async (req,res) => {
+//Hämta specifik CV
+app.get("/api/cv/:cvId", (req, res) => {
 
-    const jobTitle = req.body.jobTitle;
-    const companyName = req.body.companyName;
-    const location = req.body.location;
-    const description = req.body.description;
+    let cvId = req.params.cvId;
 
-    if(jobTitle && companyName && location && description) {
+    client.query("SELECT * FROM cv WHERE cv_id = $1", [cvId], (error, result) => {
+        if (error) {
+            console.error(error.message);
+        } else {
+            res.json(result.rows);
+        }
+    });
+});
+
+
+//Post(Lägga till)
+app.post("/api/cv", async (req, res) => {
+
+    let { jobTitle, companyName, location, description } = req.body;
+
+    if (jobTitle && companyName && location && description) {
 
         const result = await client.query("INSERT INTO cv(job_title, company_name, location, description) values ($1, $2, $3, $4)",
             [jobTitle, companyName, location, description]);
 
-        res.json({message: result});
-        
+        res.json({ message: result });
+
     } else {
-        res.json({message: "Error: Alla värden är inte satta"});
+        res.json({ message: "Error: Alla värden är inte satta" });
     }
 });
 
-app.put("/api/cv/:cvId", (req,res) => {
-    res.json({message: "Put för att uppdatera specifikt CV via ID"});
+//Put(uppdatera)
+app.put("/api/cv/:cvId", async(req, res) => {
+
+    let { jobTitle, companyName, location, description } = req.body;
+
+    let cvId = req.params.cvId;
+
+    if (jobTitle && companyName && location && description) {
+
+        //Uppdatera cv från databas tabellen cv
+        const updateResult = await client.query("UPDATE cv SET job_title=$1, company_name=$2, location= $3, description= $4 WHERE cv_id = $5", [jobTitle, companyName, location, description, cvId]);
+
+        res.json({ message: "Uppdaterad cv:" + req.params.cvId });
+
+    } else {
+        res.json({ message: "Error: Alla värden är inte satta" });
+    }
+
 });
 
-app.delete("/api/cv/:cvId", (req,res) => {
-    res.json({message: "Delete för att ta bort specifik CV"});
+
+
+//Delete(ta bort)
+app.delete("/api/cv/:cvId", (req, res) => {
+    let cvId = req.params.cvId;
+
+    //Radera cv från databas tabellen cv
+    const deletedResult = client.query("DELETE FROM cv WHERE cv_id=$1;", [cvId], (error) => {
+        if (error) {
+            console.error(error.message);
+        } else {
+            res.json({ message: "Raderad cv:" + req.params.cvId });
+        }
+    })
+
 });
+
