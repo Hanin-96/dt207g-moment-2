@@ -53,7 +53,8 @@ app.get("/api/cv", (req, res) => {
 
     client.query("SELECT * FROM cv;", (error, result) => {
         if (error) {
-            console.error(error.message);
+            res.status(500).json({ error: "Något gick fel" + error });
+            return;
         } else {
             res.json(result.rows);
         }
@@ -67,7 +68,8 @@ app.get("/api/cv/:cvId", (req, res) => {
 
     client.query("SELECT * FROM cv WHERE cv_id = $1", [cvId], (error, result) => {
         if (error) {
-            console.error(error.message);
+            res.status(500).json({ error: "Något gick fel" + error });
+            return;
         } else {
             res.json(result.rows);
         }
@@ -80,6 +82,15 @@ app.post("/api/cv", async (req, res) => {
 
     let { jobTitle, companyName, location, description } = req.body;
 
+    //Error
+    let errors = {
+        message: "",
+        detail: "",
+        https_response: {
+
+        }
+    }
+
     if (jobTitle && companyName && location && description) {
 
         const result = await client.query("INSERT INTO cv(job_title, company_name, location, description) values ($1, $2, $3, $4)",
@@ -88,14 +99,32 @@ app.post("/api/cv", async (req, res) => {
         res.json({ message: result });
 
     } else {
-        res.json({ message: "Error: Alla värden är inte satta" });
+        //Error messages
+        errors.message = "Error: Alla värden är inte satta";
+        errors.detail = "Fyll i alla fält"
+
+        //Response code
+        errors.https_response.message = "Bad request";
+        errors.https_response.code = 400;
+
+        res.status(400).json(errors);
     }
 });
 
 //Put(uppdatera)
-app.put("/api/cv/:cvId", async(req, res) => {
+app.put("/api/cv/:cvId", async (req, res) => {
 
     let { jobTitle, companyName, location, description } = req.body;
+
+    //Error
+    let errors = {
+        message: "",
+        detail: "",
+        https_response: {
+
+        }
+    }
+
 
     let cvId = req.params.cvId;
 
@@ -107,7 +136,15 @@ app.put("/api/cv/:cvId", async(req, res) => {
         res.json({ message: "Uppdaterad cv:" + req.params.cvId });
 
     } else {
-        res.json({ message: "Error: Alla värden är inte satta" });
+        //Error messages
+        errors.message = "Error: Alla värden är inte satta";
+        errors.detail = "Fyll i alla fält"
+
+        //Response code
+        errors.https_response.message = "Bad request";
+        errors.https_response.code = 400;
+
+        res.status(400).json(errors);
     }
 
 });
@@ -121,7 +158,9 @@ app.delete("/api/cv/:cvId", (req, res) => {
     //Radera cv från databas tabellen cv
     const deletedResult = client.query("DELETE FROM cv WHERE cv_id=$1;", [cvId], (error) => {
         if (error) {
-            console.error(error.message);
+            res.status(500).json({ error: "Något gick fel" + error });
+            return;
+            
         } else {
             res.json({ message: "Raderad cv:" + req.params.cvId });
         }
